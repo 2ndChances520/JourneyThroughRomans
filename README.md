@@ -31,7 +31,7 @@ Push your files to a GitHub repository.
 In your repository on GitHub, navigate to Settings > Pages (under the "Code and automation" sidebar menu).
 Under Build and deployment, set the Source to Deploy from a branch.
 Select the branch (usually main or master) and folder (usually /root) containing JourneyThroughRomans.html (Note: You may want to rename your file to index.html to make it the default landing page).
-Click Save. Within a few minutes, your site will be live at https://<your-username>.github.io/<your-repo-name>/.
+Click Save. Within a few minutes, your site will be live at (https://2ndchances520.github.io/JourneyThroughRomans/).
 Data Structure
 The application's content is managed via a JSON-like array inside the script block, allowing for easy expansion, content corrections, or local translation efforts.
 code
