@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journey Through Romans</title>
+    <style>
+        :root {
+            --bg-deep: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-sidebar: #020617;
+            --accent-primary: #3b82f6;
+            --accent-secondary: #8b5cf6;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 1rem; }
+        .logo-circle {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+        }
+
+        .badge-pill {
+            background: rgba(255,255,255,0.1);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        .app-container { display: flex; flex: 1; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-header { padding: 1.5rem; font-size: 1.1rem; font-weight: 600; color: var(--text-muted); }
+        .chapter-list { list-style: none; padding: 0 1rem 1rem 1rem; }
+        .chapter-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 0.8rem;
+            margin-bottom: 0.6rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chapter-card:hover:not(.locked) { border-color: var(--accent-primary); background: rgba(59, 130, 246, 0.1); }
+        .chapter-card.active { border-color: var(--accent-secondary); background: rgba(139, 92, 246, 0.1); }
+        .chapter-card.locked { opacity: 0.4; cursor: not-allowed; position: relative; }
+        .chapter-card.locked::after { content: "🔒"; position: absolute; right: 15px; top: 15px; font-size: 0.8rem; }
+        .chapter-num { font-size: 0.75rem; color: var(--text-muted); }
+        .chapter-title { font-weight: 600; font-size: 0.95rem; }
+
+        /* Stage */
+        .stage { flex: 1; display: flex; flex-direction: column; background: var(--bg-panel); overflow: hidden; }
+        .tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.1); }
+        .tab {
+            padding: 1rem 1.5rem; cursor: pointer; color: var(--text-muted); font-size: 0.9rem;
+            font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s;
+        }
+        .tab.active { color: var(--accent-primary); border-bottom-color: var(--accent-primary); background: rgba(255,255,255,0.02); }
+
+        .tab-content { flex: 1; padding: 2rem; overflow-y: auto; display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+        /* Story Styles */
+        .story-header { color: var(--accent-secondary); margin-bottom: 1rem; }
+        .key-verse {
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 1.5rem; font-style: italic; margin: 1.5rem 0;
+            background: rgba(59, 130, 246, 0.05); border-radius: 12px;
+        }
+        .verse-ref { color: var(--accent-primary); display: block; margin-top: 0.5rem; font-weight: bold; }
+
+        /* Game Elements */
+        .quiz-grid, .verse-options { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
+        .quiz-btn, .verse-option-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            padding: 1rem; border-radius: 8px; color: var(--text-main); cursor: pointer; text-align: left;
+        }
+        .quiz-btn:hover:not(:disabled) { border-color: var(--accent-primary); background: rgba(255,255,255,0.1); }
+        .correct { background: rgba(34, 197, 94, 0.2) !important; border-color: var(--success) !important; color: var(--success); }
+        .wrong { background: rgba(239, 68, 68, 0.2) !important; border-color: var(--danger) !important; color: var(--danger); }
+
+        .verse-blank { border-bottom: 2px solid var(--accent-primary); min-width: 80px; display: inline-block; text-align: center; color: var(--accent-secondary); font-weight: bold; padding: 0 5px; }
+        
+        .order-item {
+            background: rgba(255,255,255,0.05); padding: 1rem; margin-bottom: 0.5rem;
+            border-radius: 6px; cursor: pointer; border: 1px solid transparent;
+            display: flex; align-items: center; gap: 1rem;
+        }
+        .order-item:hover { border-color: var(--accent-primary); }
+        .order-item.selected { border-color: var(--accent-secondary); background: rgba(139, 92, 246, 0.1); }
+
+        /* Progress */
+        .progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-top: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent-primary); width: 0%; transition: width 0.4s; }
+
+        .toast {
+            position: fixed; bottom: 20px; right: 20px; background: var(--accent-secondary);
+            color: white; padding: 1rem 2rem; border-radius: 8px; z-index: 1000;
+            transform: translateY(100px); transition: transform 0.3s;
+        }
+        .toast.show { transform: translateY(0); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <div class="logo-circle">R</div>
+            <h1>Journey Through Romans</h1>
+        </div>
+        <div class="header-right">
+            <div class="badge-pill">
+                <span style="color: gold;">★</span>
+                <span class="token-count">0</span> Tokens
+            </div>
+            <div class="badge-pill progress-badge">
+                <span>Chapter 1/16</span>
+            </div>
+            <button class="btn-reset" onclick="resetGame()" style="background:none; border: 1px solid var(--danger); color:var(--danger); padding:4px 8px; border-radius:4px; cursor:pointer;">Reset</button>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">Chapters</div>
+            <ul class="chapter-list" id="chapterList"></ul>
+        </aside>
+
+        <main class="stage">
+            <nav class="tabs">
+                <div class="tab active" data-tab="story" onclick="switchTab('story')">1. The Message</div>
+                <div class="tab" data-tab="quiz" onclick="switchTab('quiz')">2. Knowledge Check</div>
+                <div class="tab" data-tab="verse" onclick="switchTab('verse')">3. Verse Master</div>
+                <div class="tab" data-tab="order" onclick="switchTab('order')">4. Timeline</div>
+            </nav>
+
+            <div id="story" class="tab-content active"></div>
+            <div id="quiz" class="tab-content"></div>
+            <div id="verse" class="tab-content"></div>
+            <div id="order" class="tab-content"></div>
+        </main>
+    </div>
+
+    <div id="toast" class="toast">Success!</div>
+
+    <script>
+        const romansData = [
+            { num: 1, title: "Introduction", summary: "Paul introduces the power of the Gospel: the righteousness of God revealed through faith.", verse: "For I am not ashamed of the gospel of Christ: for it is the power of God unto salvation.", ref: "Romans 1:16", questions: [{q:"Who wrote Romans?", a:["Peter","Paul","John","Luke"], c:1}, {q:"What is the gospel?", a:["A story","God's power","A law","A burden"], c:1}, {q:"To whom is the gospel sent?", a:["Jews only","Greeks only","Everyone","The righteous"], c:2}], fill: {text: "I am not ____ of the ____ of Christ.", words: ["ashamed", "gospel"], options: ["ashamed", "afraid", "gospel", "message"]}, order: ["Paul identifies as a servant", "He declares his mission", "The theme of faith is set"] },
+            { num: 2, title: "Judgment", summary: "God judges everyone impartially, including those with the Law and those without it.", verse: "For there is no respect of persons with God.", ref: "Romans 2:11", questions: [{q:"How does God judge?", a:["With favoritism","Impartially","By wealth","By status"], c:1}, {q:"Who is guilty?", a:["Gentiles only","Jews only","Everyone","None"], c:2}, {q:"What matters most?", a:["The Law","Circumcision","The heart","Rituals"], c:2}], fill: {text: "For there is no ____ of ____ with God.", words: ["respect", "persons"], options: ["respect", "anger", "persons", "people"]}, order: ["Gentiles are judged by conscience", "Jews are judged by Law", "God judges the secrets of men"] },
+            { num: 3, title: "Righteousness", summary: "All have sinned, but we are justified freely by His grace through faith.", verse: "For all have sinned, and come short of the glory of God.", ref: "Romans 3:23", questions: [{q:"How many have sinned?", a:["Most","Some","All","Few"], c:2}, {q:"How are we justified?", a:["By works","By grace","By taxes","By strength"], c:1}, {q:"What does the Law do?", a:["Saves us","Shows us sin","Makes us rich","Nothing"], c:1}], fill: {text: "For all have ____, and come ____ of the glory of God.", words: ["sinned", "short"], options: ["failed", "sinned", "short", "lost"]}, order: ["No one is righteous", "The Law reveals sin", "Righteousness comes by faith"] },
+            { num: 4, title: "Abraham's Faith", summary: "Abraham was justified by faith before he was circumcised, proving grace is for all.", verse: "Abraham believed God, and it was counted unto him for righteousness.", ref: "Romans 4:3", questions: [{q:"How was Abraham justified?", a:["By works","By faith","By age","By strength"], c:1}, {q:"Was it before the Law?", a:["Yes","No","During","After"], c:0}, {q:"What did he believe?", a:["God's promise","A myth","The Law","Himself"], c:0}], fill: {text: "Abraham ____ God, and it was ____ for righteousness.", words: ["believed", "counted"], options: ["believed", "heard", "counted", "made"]}, order: ["Abraham hears God's promise", "He believes despite his age", "God counts his faith as righteousness"] },
+            { num: 5, title: "Peace with God", summary: "Through Jesus, we have peace and hope, contrasting the death from Adam with life from Christ.", verse: "But God commendeth his love toward us, in that, while we were yet sinners, Christ died for us.", ref: "Romans 5:8", questions: [{q:"When did Christ die for us?", a:["When we were good","While we were sinners","After we prayed","Never"], c:1}, {q:"What came through Adam?", a:["Life","Grace","Death","Wealth"], c:2}, {q:"What came through Christ?", a:["Grace","Doom","The Law","Taxes"], c:0}], fill: {text: "While we were yet ____, Christ ____ for us.", words: ["sinners", "died"], options: ["friends", "sinners", "died", "lived"]}, order: ["Adam brings sin", "Sin brings death", "Jesus brings life to all"] },
+            { num: 6, title: "Dead to Sin", summary: "We are baptized into Christ's death so we can walk in newness of life.", verse: "For the wages of sin is death; but the gift of God is eternal life.", ref: "Romans 6:23", questions: [{q:"What are the wages of sin?", a:["Money","Death","Success","Work"], c:1}, {q:"What is God's gift?", a:["A house","Eternal life","The Law","Silver"], c:1}, {q:"Are we slaves to sin?", a:["Yes","No, we are free","Sometimes","Always"], c:1}], fill: {text: "The ____ of sin is death; but the ____ of God is eternal life.", words: ["wages", "gift"], options: ["wages", "price", "gift", "reward"]}, order: ["We are buried with Christ", "We are raised to new life", "We offer ourselves to God"] },
+            { num: 7, title: "The Struggle", summary: "Paul describes the conflict between the desire to do good and the law of sin in the flesh.", verse: "For the good that I would I do not: but the evil which I would not, that I do.", ref: "Romans 7:19", questions: [{q:"What does the Law reveal?", a:["Our goodness","Our sin","Our wealth","Nothing"], c:1}, {q:"Does Paul struggle?", a:["Yes","No","He doesn't say","Never"], c:0}, {q:"Who delivers him?", a:["The Law","Himself","Jesus Christ","The World"], c:2}], fill: {text: "The ____ that I would I do not: but the ____ which I would not, that I do.", words: ["good", "evil"], options: ["good", "right", "evil", "bad"]}, order: ["The Law is holy", "Sin uses the Law to bring death", "The inner struggle is revealed"] },
+            { num: 8, title: "Life in the Spirit", summary: "There is no condemnation for those in Christ. We are heirs with Him.", verse: "There is therefore now no condemnation to them which are in Christ Jesus.", ref: "Romans 8:1", questions: [{q:"Is there condemnation?", a:["Yes","No","Maybe","For some"], c:1}, {q:"Who helps our weakness?", a:["Ourselves","The Spirit","The Law","Angels"], c:1}, {q:"What separates us from God's love?", a:["Death","Sin","Nothing","Life"], c:2}], fill: {text: "There is now no ____ to them which are in ____ Jesus.", words: ["condemnation", "Christ"], options: ["condemnation", "shame", "Christ", "Lord"]}, order: ["Walking in the Spirit", "Being adopted as sons", "Nothing separates us from love"] },
+            { num: 9, title: "God's Selection", summary: "God is sovereign in His mercy, choosing to include the Gentiles in His plan.", verse: "Hath not the potter power over the clay?", ref: "Romans 9:21", questions: [{q:"Who is the Potter?", a:["Paul","The King","God","Israel"], c:2}, {q:"Does God have mercy?", a:["On none","On whom He wills","Only on Jews","No"], c:1}, {q:"What did Israel miss?", a:["The Law","The path of faith","The Temple","Nothing"], c:1}], fill: {text: "Hath not the ____ power over the ____?", words: ["potter", "clay"], options: ["potter", "maker", "clay", "earth"]}, order: ["God chooses Isaac over Ishmael", "God has mercy on whom He wills", "Gentiles find righteousness"] },
+            { num: 10, title: "The Path to Salvation", summary: "Salvation comes through confession and belief in the heart.", verse: "For whosoever shall call upon the name of the Lord shall be saved.", ref: "Romans 10:13", questions: [{q:"How do we get saved?", a:["Call on the Lord","Work hard","Be perfect","Study"], c:0}, {q:"How does faith come?", a:["Reading","Hearing God's word","Sleeping","Singing"], c:1}, {q:"Where is the word?", a:["In the sky","In your heart/mouth","In a box","Hidden"], c:1}], fill: {text: "With the ____ man believeth; with the ____ confession is made.", words: ["heart", "mouth"], options: ["heart", "soul", "mouth", "voice"]}, order: ["Hear the word", "Believe in the heart", "Confess with the mouth"] },
+            { num: 11, title: "The Remnant", summary: "God has not rejected Israel; their stumble allowed Gentiles to be grafted in.", verse: "For God hath concluded them all in unbelief, that he might have mercy upon all.", ref: "Romans 11:32", questions: [{q:"Has God rejected Israel?", a:["Yes","No","Maybe","Partially"], c:1}, {q:"What are Gentiles?", a:["The Root","Wild branches","The Water","The Soil"], c:1}, {q:"Who was the olive tree?", a:["Rome","Israel","Egypt","Babylon"], c:1}], fill: {text: "Thou, being a ____ olive tree, wert ____ in.", words: ["wild", "graffed"], options: ["wild", "dead", "graffed", "put"]}, order: ["Israel stumbles", "Gentiles are grafted in", "All Israel will be saved"] },
+            { num: 12, title: "Living Sacrifice", summary: "We are to offer our lives to God and use our unique spiritual gifts.", verse: "Present your bodies a living sacrifice, holy, acceptable unto God.", ref: "Romans 12:1", questions: [{q:"What is our sacrifice?", a:["Animals","Money","Our bodies","Our food"], c:2}, {q:"Should we conform?", a:["To the world","To the Law","No, be transformed","Always"], c:2}, {q:"How do we treat enemies?", a:["Fight them","Feed them","Ignore them","Mock them"], c:1}], fill: {text: "Be not ____ to this world: but be ye ____.", words: ["conformed", "transformed"], options: ["conformed", "joined", "transformed", "changed"]}, order: ["Renew the mind", "Discover spiritual gifts", "Practice brotherly love"] },
+            { num: 13, title: "Authority", summary: "Christians should respect governing authorities and fulfill the law through love.", verse: "Let every soul be subject unto the higher powers.", ref: "Romans 13:1", questions: [{q:"Where does power come from?", a:["People","God","Force","Money"], c:1}, {q:"What fulfills the Law?", a:["Love","Fear","Rules","Taxes"], c:0}, {q:"What should we put on?", a:["Armor","Light/Christ","Gold","Silk"], c:1}], fill: {text: "Love ____ no ill to his neighbour: therefore ____ is the fulfilling of the law.", words: ["worketh", "love"], options: ["worketh", "does", "love", "faith"]}, order: ["Submit to authorities", "Pay what is due", "Owe nothing but love"] },
+            { num: 14, title: "Unity", summary: "Do not judge others over food or special days; live for the Lord.", verse: "For the kingdom of God is not meat and drink; but righteousness, and peace.", ref: "Romans 14:17", questions: [{q:"What is God's Kingdom?", a:["Meat","Drink","Righteousness/Peace","Gold"], c:2}, {q:"Should we judge?", a:["Yes","No, not brothers","Always","Only sinners"], c:1}, {q:"For whom do we live?", a:["Ourselves","The Lord","The King","The Church"], c:1}], fill: {text: "For none of us ____ to himself, and no man ____ to himself.", words: ["liveth", "dieth"], options: ["liveth", "works", "dieth", "sleeps"]}, order: ["Accept the weak", "Stop judging opinions", "Do not cause stumbling"] },
+            { num: 15, title: "Hope and Mission", summary: "Christ came for Jews and Gentiles; Paul plans to visit Rome and Spain.", verse: "Now the God of hope fill you with all joy and peace in believing.", ref: "Romans 15:13", questions: [{q:"Who is the God of?", a:["War","Hope","Anger","Silence"], c:1}, {q:"Why was Scripture written?", a:["To bore us","For our learning","To hide truth","For kings"], c:1}, {q:"Where was Paul going?", a:["Rome/Spain","Egypt","Athens","Gaul"], c:0}], fill: {text: "The God of ____ fill you with all ____ and peace.", words: ["hope", "joy"], options: ["hope", "love", "joy", "strength"]}, order: ["Strong bear with the weak", "Christ fulfills promises", "Paul asks for prayers"] },
+            { num: 16, title: "Greetings", summary: "Paul greets his friends and warns against those who cause divisions.", verse: "The grace of our Lord Jesus Christ be with you all. Amen.", ref: "Romans 16:24", questions: [{q:"Who is mentioned first?", a:["Peter","Phebe","John","Mark"], c:1}, {q:"What should we avoid?", a:["Friends","Divisions","Work","Prayer"], c:1}, {q:"Who will be bruised soon?", a:["Paul","Satan","Rome","The World"], c:1}], fill: {text: "The God of ____ shall bruise ____ under your feet shortly.", words: ["peace", "Satan"], options: ["peace", "power", "Satan", "evil"]}, order: ["Commendation of Phebe", "Personal greetings to friends", "Final blessing of grace"] }
+        ];
+
+        let state = {
+            tokens: 0,
+            currentChapter: 1,
+            unlockedUntil: 1,
+            chapterTokens: {}, // Track tokens per chapter
+            verseProgress: [],
+            orderProgress: []
+        };
+
+        // Init
+        function init() {
+            const saved = localStorage.getItem('romansGame');
+            if (saved) state = JSON.parse(saved);
+            renderSidebar();
+            loadChapter(state.currentChapter);
+            updateHeader();
+        }
+
+        function save() {
+            localStorage.setItem('romansGame', JSON.stringify(state));
+        }
+
+        function loadChapter(num) {
+            state.currentChapter = num;
+            const data = romansData[num - 1];
+            
+            // UI State
+            document.querySelectorAll('.chapter-card').forEach(c => c.classList.remove('active'));
+            const activeCard = document.querySelector(`[data-num="${num}"]`);
+            if(activeCard) activeCard.classList.add('active');
+
+            renderStory(data);
+            renderQuiz(data);
+            renderVerse(data);
+            renderOrder(data);
+            switchTab('story');
+            save();
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById('chapterList');
+            list.innerHTML = romansData.map(ch => `
+                <li class="chapter-card ${ch.num > state.unlockedUntil ? 'locked' : ''} ${ch.num === state.currentChapter ? 'active' : ''}" 
+                    data-num="${ch.num}" 
+                    onclick="if(${ch.num <= state.unlockedUntil}) loadChapter(${ch.num})">
+                    <div class="chapter-num">Chapter ${ch.num}</div>
+                    <div class="chapter-title">${ch.title}</div>
+                </li>
+            `).join('');
+        }
+
+        function updateHeader() {
+            document.querySelector('.token-count').innerText = state.tokens;
+            document.querySelector('.progress-badge span').innerText = `Chapter ${state.currentChapter}/16`;
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // --- STORY ---
+        function renderStory(data) {
+            const earned = state.chapterTokens[data.num] || 0;
+            const progress = (earned / 30) * 100;
+            document.getElementById('story').innerHTML = `
+                <h2 class="story-header">${data.num}. ${data.title}</h2>
+                <p style="line-height:1.6; font-size:1.1rem; color:var(--text-muted);">${data.summary}</p>
+                <div class="key-verse">
+                    "${data.verse}"
+                    <span class="verse-ref">— ${data.ref}</span>
+                </div>
+                <div style="margin-top:2rem;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px;">
+                        <span>Chapter Progress</span>
+                        <span>${earned} / 30 Tokens</span>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+                </div>
+                <button class="quiz-btn" style="margin-top:2rem; width:100%; text-align:center; font-weight:bold; background:var(--accent-primary);" onclick="switchTab('quiz')">Start Chapter Challenges</button>
+            `;
+        }
+
+        // --- QUIZ ---
+        function renderQuiz(data) {
+            const container = document.getElementById('quiz');
+            container.innerHTML = `<h2>Chapter ${data.num} Quiz</h2>` + data.questions.map((q, qIdx) => `
+                <div style="margin-top:1.5rem;">
+                    <p>${qIdx+1}. ${q.q}</p>
+                    <div class="quiz-grid">
+                        ${q.a.map((opt, aIdx) => `
+                            <button class="quiz-btn" onclick="checkQuiz(this, ${data.num}, ${qIdx}, ${aIdx})">${opt}</button>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('') + `<button class="quiz-btn" style="margin-top:2rem;" onclick="switchTab('verse')">Next: Verse Fill</button>`;
+        }
+
+        function checkQuiz(btn, chNum, qIdx, aIdx) {
+            const correct = romansData[chNum-1].questions[qIdx].c;
+            const parent = btn.parentElement;
+            if(parent.querySelector('.correct') || parent.querySelector('.wrong')) return;
+
+            if(aIdx === correct) {
+                btn.classList.add('correct');
+                addTokens(chNum, 4);
+                showToast("Correct! +4 Tokens");
+            } else {
+                btn.classList.add('wrong');
+                parent.querySelectorAll('.quiz-btn')[correct].classList.add('correct');
+            }
+        }
+
+        // --- VERSE FILL ---
+        function renderVerse(data) {
+            state.verseProgress = [];
+            const container = document.getElementById('verse');
+            let display = data.fill.text;
+            data.fill.words.forEach((w, i) => {
+                display = display.replace("____", `<span class="verse-blank" id="blank-${i}">?</span>`);
+            });
+
+            container.innerHTML = `
+                <h2>Complete the Verse</h2>
+                <p style="font-size:1.4rem; line-height:2.5; margin: 2rem 0;">${display}</p>
+                <div class="verse-options">
+                    ${data.fill.options.map(opt => `<button class="verse-option-btn" onclick="checkVerse(this, ${data.num})">${opt}</button>`).join('')}
+                </div>
+                <button class="quiz-btn" style="margin-top:2rem;" onclick="switchTab('order')">Next: Timeline</button>
+            `;
+        }
+
+        function checkVerse(btn, chNum) {
+            const data = romansData[chNum-1].fill;
+            const currentIdx = state.verseProgress.length;
+            if(currentIdx >= data.words.length) return;
+
+            if(btn.innerText === data.words[currentIdx]) {
+                document.getElementById(`blank-${currentIdx}`).innerText = btn.innerText;
+                state.verseProgress.push(btn.innerText);
+                btn.style.visibility = 'hidden';
+                if(state.verseProgress.length === data.words.length) {
+                    addTokens(chNum, 9);
+                    showToast("Verse Complete! +9 Tokens");
+                }
+            } else {
+                showToast("Not that one!");
+                btn.classList.add('wrong');
+                setTimeout(() => btn.classList.remove('wrong'), 500);
+            }
+        }
+
+        // --- ORDERING ---
+        function renderOrder(data) {
+            state.orderProgress = [...data.order].sort(() => Math.random() - 0.5);
+            const container = document.getElementById('order');
+            container.innerHTML = `
+                <h2>Order the Events</h2>
+                <p style="color:var(--text-muted); margin-bottom:1rem;">Click two items to swap their positions.</p>
+                <div id="orderList">
+                    ${state.orderProgress.map((item, i) => `<div class="order-item" onclick="swapOrder(${i}, ${data.num})"><span class="logo-circle" style="width:25px; height:25px; font-size:0.8rem;">${i+1}</span> ${item}</div>`).join('')}
+                </div>
+                <button class="quiz-btn" style="margin-top:2rem; background:var(--success); width:100%;" onclick="checkOrder(${data.num})">Verify Sequence</button>
+            `;
+        }
+
+        let firstSwap = null;
+        function swapOrder(idx, chNum) {
+            if(firstSwap === null) {
+                firstSwap = idx;
+                document.querySelectorAll('.order-item')[idx].classList.add('selected');
+            } else {
+                const temp = state.orderProgress[idx];
+                state.orderProgress[idx] = state.orderProgress[firstSwap];
+                state.orderProgress[firstSwap] = temp;
+                firstSwap = null;
+                renderOrderList(chNum);
+            }
+        }
+
+        function renderOrderList(chNum) {
+            const list = document.getElementById('orderList');
+            list.innerHTML = state.orderProgress.map((item, i) => `<div class="order-item" onclick="swapOrder(${i}, ${chNum})"><span class="logo-circle" style="width:25px; height:25px; font-size:0.8rem;">${i+1}</span> ${item}</div>`).join('');
+        }
+
+        function checkOrder(chNum) {
+            const original = romansData[chNum-1].order;
+            let correct = true;
+            original.forEach((val, i) => { if(val !== state.orderProgress[i]) correct = false; });
+
+            if(correct) {
+                addTokens(chNum, 9);
+                showToast("Perfect Order! +9 Tokens");
+                if((state.chapterTokens[chNum] || 0) >= 30 && chNum === state.unlockedUntil) {
+                    state.unlockedUntil++;
+                    renderSidebar();
+                    showToast("CHAPTER " + (chNum+1) + " UNLOCKED!");
+                }
+            } else {
+                showToast("Sequence is incorrect.");
+            }
+        }
+
+        // --- UTILS ---
+        function addTokens(chNum, amt) {
+            if(!state.chapterTokens[chNum]) state.chapterTokens[chNum] = 0;
+            if(state.chapterTokens[chNum] < 30) {
+                state.chapterTokens[chNum] = Math.min(30, state.chapterTokens[chNum] + amt);
+                state.tokens += amt;
+                updateHeader();
+                renderStory(romansData[chNum-1]);
+                save();
+            }
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        function resetGame() {
+            if(confirm("Erase all progress?")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
