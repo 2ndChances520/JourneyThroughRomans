@@ -22,7 +22,7 @@ Because this application relies on standard web technologies with no build steps
 Clone or download this repository.
 code
 Bash
-git clone https://2ndchances520.github.io/JourneyThroughRomans/.git
+git clone https://2ndchances520.github.io/JourneyThroughRomans/
 Navigate to the directory containing the project file.
 Double-click JourneyThroughRomans.html to open it in any modern web browser (such as Chrome, Firefox, Safari, or Edge).
 How to Deploy on GitHub Pages
